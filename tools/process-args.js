@@ -1,0 +1,59 @@
+const mri = require("mri");
+const clc = require("cli-color");
+
+this.arguments = mri(process.argv, {
+    boolean:    ["help", "color"],
+    string:     ['api_refresh', 'screen_refresh'],
+    default: {
+        api_refresh:    String(10*60*1000),
+        help:           false,
+        screen_refresh: String(1000),
+        color:          true,
+        dump:           false
+    },
+    alias: {
+        api_refresh:    "a",
+        help:           "h",
+        screen_refresh: "s",
+        color:          "c",
+        dump:           "d"
+    }
+});
+
+['s', 'screen_refresh', 'a', 'api_refresh'].forEach(idx => {
+    if (idx == 'a' || idx == 'api_refresh') {
+        if (this.arguments[idx] < 30*1000) {
+            this.arguments[idx] = 30*1000    // No spam pls!
+        }
+    }
+    this.arguments[idx] = parseInt(this.arguments[idx])
+});
+
+if (this.arguments.help) {
+    console.log(`
+Usage:
+    spacex-cli
+    spacex-cli [-a <polling interval>] | [-h] | [-s <polling interval>] | [-d]
+    spacex-cli [--api_refresh=<polling interval>] | [--help] | [--screen_refresh=<polling interval>] | [--dump]
+
+Options:
+    -h, --help              Show this help information.
+    -s, --screen_refresh    Screen refresh interval in milliseconds. How often time-based information updates [default: 1000]
+    -a, --api_refresh       API refresh interval in milliseconds. How often we poll the api for new/updated information. Please don't use small values! [default: 600000]
+    -c, --color             Print with color [default: true]
+    -d, --dump              Non-interactive mode - dumps the main launches table [default: false]
+
+Current configuration:`);
+    var arguments_ = this.arguments;
+    delete arguments_._;
+    console.log(JSON.stringify(arguments_)
+                    .replace('{','')
+                    .replace('}','')
+                    .replace(/,/g,'\n    ')
+                    .replace(/:/g, ': ')
+                    .replace(/true/g,clc.green('true'))
+                    .replace(/false/g,clc.red('false'))
+                    .replace(/^/g,'    ')
+    )
+    process.exit(0);
+};

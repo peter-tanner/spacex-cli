@@ -1,0 +1,7 @@
+etc/
+node_modules/
+#trademark reasons.
+spacex.ico
+build
+npm-debug.log
+.env
