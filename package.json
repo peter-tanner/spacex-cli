@@ -1,10 +1,13 @@
 {
   "name": "spacex-cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "SpaceX upcoming launch tracker",
   "main": "spacex-cli.js",
   "scripts": {
     "test": "node spacex-cli"
+  },
+  "bin": {
+    "spacex-cli": "spacex-cli"
   },
   "keywords": [
     "spacex",
@@ -14,6 +17,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "cli-color": "^2.0.0",
+    "diff": "^5.0.0",
     "mri": "^1.1.6",
     "neo-blessed": "^0.2.0",
     "node-fetch": "^2.6.1",

@@ -1,10 +1,11 @@
+#!/usr/bin/env node
 const clc = require('cli-color');
 const notifier = require('node-notifier');
-const blessed = require('neo-blessed');
+const Diff = require('diff');
 const path = require('path');
 
 const arguments = require('./tools/process-args').arguments;
-const cli_elem = require('./tools/cli-elements');
+const cli_elem = require('./tools/cli-elements');   //Idk js package structure/conventions...
 const date_tools = require('./tools/date-tools');
 const net_tools = require('./tools/net-tools');
 const format_tools = require('./tools/format-tools');
@@ -16,6 +17,8 @@ const CONSTANT_VALUES = constants.CONSTANT_VALUES;
 
 var screen = cli_elem.screen;
 var table_element = cli_elem.table_element;
+var diff_table_element = cli_elem.diff_table_element;
+var diff_json_element = cli_elem.diff_json_element;
 var status_element = cli_elem.status_element;
 var countdown_element = cli_elem.countdown_element;
 var controls_element = cli_elem.controls_element;
@@ -30,7 +33,6 @@ const prettyPrintData = format_tools.prettyPrintData;
 
 //  =====================================
 
-//TODO: archive data option
 //TODO: better viewer (than json and the crappy one I made using only string manipulation.)
 
 process.env.FORCE_COLOR = true;
@@ -41,12 +43,14 @@ const SCREEN_REFRESH = arguments.screen_refresh; //ms
 const API_REFRESH = arguments.api_refresh; //ms
 const API_REFRESH_CYCLES = API_REFRESH/SCREEN_REFRESH;
 const NONINTERACTIVE = arguments.dump;
+const BLINK = arguments.blink;
+const ARCHIVE = arguments.archive;
 //
 
 var notified_1h = [];
 var notifying_1h = [];
 
-async function formatData(arr) {
+function selectData(arr) {
 	const LUNCHPADS_RESP = arr[0];
 	const LUNCHES_RESP = arr[1];
     const ROCKETS_RESP = arr[2];
@@ -95,10 +99,13 @@ async function formatData(arr) {
         payload_customers_str = payload_customers_str.substr(0, payload_customers_str.length-3)
 
         var cores_str = "";
+        var cores_str_ = "";
         lunch.cores.forEach(core_ => {
             cores_str += CORES[core_["core"]] ? (CORES[core_["core"]]["serial"] + '(' + CORES[core_["core"]]["reuse_count"] + ') ') : STRING.CORE_UNASSIGNED + '  ';
+            cores_str_ += CORES[core_["core"]] ? (CORES[core_["core"]]["serial"] + '(' + CORES[core_["core"]]["reuse_count"] + ') ') : STRING.CORE_UNASSIGNED_ + '  ';
         });
-        cores_str = cores_str.substr(0, cores_str.length-1)
+        cores_str = cores_str.substr(0, cores_str.length-1);
+        cores_str_ = cores_str_.substr(0, cores_str_.length-1);
 
         var time_style = {
             hour:       { p:"minutes",  c: COLOR.TIME.LT1 },
@@ -108,82 +115,70 @@ async function formatData(arr) {
             half:       { p:"days",     c: COLOR.TIME.LTH }
         }[precision]
         const dt_s = t_s - new Date().getTime() / 1000;
-        var dt_str = secondsHumanReadable(dt_s,time_style.p);
-        if (dt_s <= CONSTANT_VALUES.TIME_NOTIFY && precision == "hour" && !lunch.tbd && !lunch.net && !notified_1h.includes(lunch.flight_number)) { //Notify user.
+        const dt_str_ = secondsHumanReadable(dt_s,time_style.p);
+        var dt_str;
+        if (dt_s <= CONSTANT_VALUES.TIME_NOTIFY && precision === "hour" && !lunch.tbd && !lunch.net && !notified_1h.includes(lunch.flight_number)) { //Notify user.
             notified_1h.push(lunch.flight_number)
             notifying_1h.push(lunch.name)
         }
 
-        if (dt_s <= CONSTANT_VALUES.TIME_BLINK && precision == "hour" && !lunch.tbd && !lunch.net) {
-            dt_str = COLOR.HUGE_SUCCESS("! "+clc.blink(dt_str))+COLOR.HUGE_SUCCESS(" !");
+        if (dt_s <= CONSTANT_VALUES.TIME_BLINK && precision === "hour" && !lunch.tbd && !lunch.net) {
+            dt_str = COLOR.HUGE_SUCCESS("! "+(BLINK ? COLOR.BLINK(dt_str_) : dt_str_))+COLOR.HUGE_SUCCESS(" !");
             date_h = COLOR.HUGE_SUCCESS(date_arr.bw.join(''));
         } else if (dt_s < 0) {
-            dt_str = COLOR.INVALID(dt_str);
+            dt_str = COLOR.INVALID(dt_str_);
             date_h = COLOR.INVALID(date_arr.bw.join(''))+'{/}';
         } else {
-            dt_str = time_style.c(dt_str)
+            dt_str = time_style.c(dt_str_)
             date_h = date_arr.col.join('');
         }
+        const precision_ = precision;
         precision = time_style.c(precision)
         
         return {
             name:           lunch.name,
-            flight_number:  lunch.flight_number,
+            flight_number:  String(lunch.flight_number),
             date_precision: precision,
+            date_precision_:precision_,
             tbd:            lunch.tbd,
             net:            lunch.net,
             date_h:         date_h,
+            date_h_:        date_arr.bw.join(''),
             rocket:         ROCKETS[lunch.rocket],
             cores:          cores_str,
+            cores_:         cores_str_,
             launchpad:      lunchpad.name,
             launchpad_reg:  lunchpad.region,
             dt:             dt_str,
+            dt_:            dt_str_,
             payloads: {
                 names_str: payload_names_str,
                 customers_str: payload_customers_str
             }
         }
     });
+    return LUNCHES;
+};
 
+async function formatData(arr) {
+    return format_tools.tabularizeData(selectData(arr));
+};
 
-    LUNCHES = LUNCHES.map(lunch => [
-        COLOR.GENERIC(lunch.flight_number),
-        COLOR.GENERIC(lunch.name),
-        lunch.date_h,
-        lunch.dt,
-        String(lunch.date_precision),
-        COLOR.DANGER((lunch.tbd ? "tbd" : "")+(lunch.net && lunch.tbd ? ", " : "")+(lunch.net ? "net" : "")),
-        COLOR.GENERIC(lunch.rocket),
-        COLOR.GENERIC(lunch.cores),
-        COLOR.GENERIC(lunch.launchpad),
-        // lunch.launchpad_reg
-        COLOR.GENERIC(lunch.payloads.names_str),
-        COLOR.GENERIC(lunch.payloads.customers_str)
-    ])
-    LUNCHES.unshift([
-        STRING.HEADERS.FLIGHT_NUMBER,
-        STRING.HEADERS.NAME,
-        STRING.HEADERS.DATE_H,
-        STRING.HEADERS.DT,
-        STRING.HEADERS.PRECISION,
-        STRING.HEADERS.FLAGS,
-        STRING.HEADERS.ROCKET,
-        STRING.HEADERS.CORE,
-        STRING.HEADERS.LAUNCHPAD,
-        // STRING.HEADERS.LAUNCHPAD_REG
-        STRING.HEADERS.PAYLOAD_NAME,
-        STRING.HEADERS.PAYLOAD_CUSTOMERS,
-    ],[ ' ', ' ', ' ', ' ', ' ', ' ', ' ',' ', ' ', ' ', ' '])
-	return LUNCHES
-}
+var diff_table_content;
+var diff_json_content;
 
+var newData = false;
 var json_view = false;
 //Keep these keybind listeners in main // Quit on Escape, q, or Control-C.
 screen.key(['escape', 'q', '', 'C-c', 'left'], (ch, key) => {
-    if (screen.focused.name == "table" && key.name != 'left') {
+    const name = screen.focused.name;
+    if (name === "table" && key.name !== 'left') {
         console.log('\033[?25h');
         return process.exit(0);
-    } else if (screen.focused.name == "detailed_information") {
+    } else if (name === "detailed_information" || name === "diff_table" || name === "diff_json") {
+        if (name === "diff_table" || name === "diff_json") {
+            newData = false;
+        };
         table_element.setFront();
         table_element.focus();
         controls_element.setContent(STRING.CONTROLS.TABLE);
@@ -191,12 +186,48 @@ screen.key(['escape', 'q', '', 'C-c', 'left'], (ch, key) => {
     };
 });
 screen.key(['j'], (ch, key) => {
-    json_view = (json_view ? false : true);
-    information_element.setData(prettyPrintData(data_cache, idx, json_view));
+    const name = screen.focused.name;
+    if (name === "detailed_information") {
+        json_view = (json_view ? false : true);
+        information_element.setData(prettyPrintData(data_cache, idx, json_view));
+    } else if (name === "diff_table") {
+        json_view = true;
+        diff_json_element.setFront();
+        diff_json_element.focus();
+        diff_json_element.enableInput();
+    } else if (name === "diff_json") {
+        json_view = false;
+        diff_table_element.setFront();
+        diff_table_element.focus();
+        diff_table_element.enableInput();
+    };
+    screen.render();
+});
+screen.key(['d'], (ch, key) => {
+    const name = screen.focused.name;
+    if (name !== "diff_table" && name !== "diff_json") {
+        // console.log(diff_table_content);
+        // process.kill(process.pid)
+        controls_element.setContent(STRING.CONTROLS.INFORMATION);
+        if (json_view) {
+            diff_json_element.setFront();
+            diff_json_element.focus();
+            diff_json_element.enableInput();
+        } else {
+            diff_table_element.setFront();
+            diff_table_element.focus();
+            diff_table_element.enableInput();
+        };
+    } else {
+        table_element.setFront();
+        table_element.focus();
+        controls_element.setContent(STRING.CONTROLS.TABLE);
+    };
     screen.render();
 });
 screen.key(['enter', 'right'], (ch, key) => {
-    if (screen.focused.name == "table") {
+    const name = screen.focused.name;
+    if (name === "table") {
         idx = table_element.getScroll()-2;
         if (idx >= 0) {
             status_element.setContent(String(data_cache[1][idx].name));
@@ -206,7 +237,10 @@ screen.key(['enter', 'right'], (ch, key) => {
             information_element.setData(prettyPrintData(data_cache, idx, json_view));
             controls_element.setContent(STRING.CONTROLS.INFORMATION);
         };
-    } else if (screen.focused.name == "detailed_information") {
+    } else if (key.name === 'enter' && (name === "detailed_information" || name === "diff_table" || name === "diff_json")) {
+        if (name === "diff_table" || name === "diff_json") {
+            newData = false;
+        };
         table_element.setFront();
         table_element.focus();
         controls_element.setContent(STRING.CONTROLS.TABLE);
@@ -218,6 +252,9 @@ screen.key(['r'], (ch, key) => {
 });
 
 var data_cache;
+var checkDiff = true;
+var firstRun = true;
+var lastDelta = '';
 var api_counter = 1;
 
 (async function(){
@@ -227,13 +264,16 @@ var api_counter = 1;
     table_element.select(1);
     status_element.setContent(STRING.DOWNLOADING);
     countdown_element.setContent(STRING.DOWNLOADING_STAR);
+    diff_table_element.setData(diff_table_content ? diff_table_content : [['diff_table_content']]);
+
     screen.render();
 })()
 
 
 async function main() {
     api_counter--;
-	if (api_counter == 0) {
+	if (api_counter === 0) {
+        checkDiff = true;
         status_element.setContent(STRING.DOWNLOADING);
         countdown_element.setContent(STRING.DOWNLOADING_STAR);
         screen.render();
@@ -242,22 +282,22 @@ async function main() {
     }
 	if (data_cache) {
         var err_message = await formatErr(await data_cache);
-        if (err_message == true) {            
+        if (err_message === true) {            
             const TABLE = await formatData(await data_cache);
             const SCROLL = table_element.getScroll();
             table_element.setData(TABLE);
             table_element.select(SCROLL);
-            err_message = [( (data_cache[1].length - (table_element.height - 4)) > 0 ? STRING.OK_SCROLL : STRING.OK_GENERIC)];
-            if (notifying_1h.length > 0) {
-                notifier.notify({
-                    title:      STRING.H_WARNING,
-                    message:    notifying_1h.join(' │ '),
-                    icon:       path.join(__dirname, 'spacex.ico'),
-                    appID:      STRING.APPID
-                });
-                notifying_1h = [];
-            }
-        }
+            err_message = [( (data_cache[1].length - (table_element.height - 4)) > 0 ? STRING.OK_SCROLL : STRING.OK_GENERIC) + (newData ? ' | '+COLOR.WARNING(STRING.NEW_DATA) : '')+' '+lastDelta];
+        };
+        if (notifying_1h.length > 0) {
+            notifier.notify({
+                title:      STRING.H_WARNING,
+                message:    notifying_1h.join(' │ '),
+                icon:       path.join(__dirname, 'spacex.ico'),
+                appID:      STRING.APPID
+            });
+            notifying_1h = [];
+        };
         if (NONINTERACTIVE) {
             screen.remove(status_element);
             screen.remove(countdown_element);
@@ -272,17 +312,88 @@ async function main() {
         }
         status_element.setContent(err_message[api_counter%err_message.length]);
         countdown_element.setContent("Next update in "+secondsHumanReadable(api_counter*SCREEN_REFRESH/1000));
-    }
+        
+
+        if (checkDiff) {
+            checkDiff = false;
+            const path_prev_launches = path.join(CONSTANT_VALUES.DATA_PATH,'previous_data.json');
+            const path_prev_launches_table = path.join(CONSTANT_VALUES.DATA_PATH,'previous_data_table.json');
+
+            const curr_launches = data_cache[1];
+            var prev_launches = net_tools.readFile(path_prev_launches);
+            prev_launches = prev_launches !== '' ? JSON.parse(prev_launches) : [];
+            
+            diff_json_content = [[STRING.HEADERS.JSON],['']];
+            // jsonDiff.diffString(prev_launches, curr_launches)
+            //         .split('\n')
+            //         .forEach(u => {diff_json_content.push([clc.cyan(u)])});
+            const json_diff_data = Diff.diffJson(prev_launches, curr_launches)
+            const changed = json_diff_data.some(chunk => {
+                return chunk.added || chunk.removed;
+            });
+
+            if (changed || firstRun) {
+                firstRun = false;
+                
+                json_diff_data.forEach(chunk => {
+                    if (chunk.added && chunk.removed) {//Not sure if this case is possible.
+                        chunk.value.split('\\n').forEach(line => {[diff_json_content.push([COLOR.WARNING(STRING.DIFF.BOTH_SYMBOL+'│  '+line)])]});
+                    } else if (chunk.added) {
+                        chunk.value.split('\\n').forEach(line => {[diff_json_content.push([COLOR.SUCCESS(STRING.DIFF.CURRENT_SYMBOL+'│  '+line)])]});
+                    } else if (chunk.removed) {
+                        chunk.value.split('\\n').forEach(line => {[diff_json_content.push([COLOR.DANGER(STRING.DIFF.PREVIOUS_SYMBOL+'│  '+line)])]});
+                    } else {
+                        chunk.value.replace(/\n/gm,"_NEWLINE_") //Why the frick doesn't my regexp work when it works in a tester???? Using this workaround.
+                            .replace(/_NEWLINE_\s\s\{(.*?)_NEWLINE_\s\s\},/gm, '_NEWLINE_  [...]')
+                            .replace(/_NEWLINE_\s\s\{(.*?)_NEWLINE_]/m, '_NEWLINE_  [...]_NEWLINE_]')
+                            .split('_NEWLINE_')
+                            .forEach(line => {line !== '' ? [diff_json_content.push([COLOR.GENERIC(STRING.DIFF.UNCHANGED_SYMBOL_+'│  '+line)])] : null});   //Trailing newline results in a empty line - need to filter it out.
+                    };
+                });
+                diff_json_content.push([''])
+
+                // console.log(json_diff_data);
+                // process.kill(process.pid)
+                // JSON.stringify((json_diff_data ? json_diff_data : ''),null,2)
+                //         .split('\n')
+                //         .forEach(u => {diff_json_content.push([clc.cyan(u)])});
+                
+                var prev_launches_table =  net_tools.readFile(path_prev_launches_table);
+                const curr_launches_table = format_tools.tabularizeDiffData(await selectData(await data_cache));
+                prev_launches_table = prev_launches_table !== '' ? JSON.parse(prev_launches_table) : Array(curr_launches_table.length).fill(Array(curr_launches_table[0].length).fill(''));
+                diff_table_content = format_tools.diffTable(prev_launches_table,curr_launches_table)
+                
+                diff_table_element.setData(diff_table_content ? diff_table_content : [['diff_table_content']]);
+                diff_json_element.setData(diff_json_content ? diff_json_content : [['diff_json_content']]);
+
+                if (changed) {
+                    const dateStr = new Date().toIsoArr().bw.join('');
+                    lastDelta = '| '+STRING.LAST_DELTA+COLOR.GENERIC(dateStr);
+                    newData = true;
+                    notifier.notify({
+                        title:      STRING.NEW_DATA,
+                        message:    'Press d to see table diff. Press j to see JSON diff.',
+                        icon:       path.join(__dirname, 'spacex.ico'),
+                        appID:      STRING.APPID
+                    });
+                    net_tools.writeFile(path_prev_launches, JSON.stringify(curr_launches));
+                    net_tools.writeFile(path_prev_launches_table, JSON.stringify(curr_launches_table));
+                    if (ARCHIVE) {
+                        net_tools.writeFile(
+                            path.join(CONSTANT_VALUES.DATA_PATH,'/archive/'+dateStr.replace(/:/g,'_').replace(' ','_')+'.json'),
+                            JSON.stringify(curr_launches)
+                        );
+                        net_tools.writeFile(
+                            path.join(CONSTANT_VALUES.DATA_PATH,'/archive/'+dateStr.replace(/:/g,'_').replace(' ','_')+'_table.json'),
+                            JSON.stringify(curr_launches_table)
+                        );
+                    };
+                };
+            };
+        };
+    };
     screen.render();
 };
 
 console.log('\033[?25l');    //ANSI code - hide cursor
 setInterval(main, SCREEN_REFRESH);
-
-
-
-function sleep(ms) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-} 

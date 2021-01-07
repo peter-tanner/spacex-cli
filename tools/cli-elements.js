@@ -8,7 +8,7 @@ const COLOR = constants.GETCOLORS(clc);
 const STRING = constants.GETSTRING(COLOR);
 const STYLES = constants.STYLES;
 
-const control_element_width = STRING.CONTROLS.TABLE.length+8;
+const control_element_width = constants.CONTROL_MAX_WIDTH+8;
 
 this.screen = blessed.screen({
     smartCSR: true,
@@ -32,9 +32,9 @@ this.table_element = blessed.listtable({
     style: {
         scrollbar: STYLES.scrollbar
     },
-    scrollbar: true,
+    scrollbar: !arguments.dump,
     invertSelected: true,
-})
+});
 
 this.status_element = blessed.box({
 	position : {
@@ -102,10 +102,47 @@ this.information_element = blessed.listtable({//blessed.box({
     name: 'detailed_information'
 });
 
+
+this.diff_json_element = blessed.listtable({//blessed.box({
+    align: 'left',
+    position: {
+        width: '100%',
+        height: this.screen.height-2,
+    },
+    style: {
+        scrollbar: STYLES.scrollbar
+    },
+    tags: true,
+    scrollbar: true,
+    scrollable: true,
+    border: 'line',
+    keys: true,
+	parent: this.screen,
+    invertSelected: true,
+    name: 'diff_json'
+});
+
+this.diff_table_element = blessed.listtable({
+	parent: this.screen,
+    border: 'line',
+    align: 'center',
+    keys: true,
+    width: "100%",
+    height: this.screen.height-2,
+    name: 'diff_table',
+    tags: true,
+    style: {
+        scrollbar: STYLES.scrollbar
+    },
+    scrollbar: true,
+    invertSelected: true,
+});
+
 this.screen.append(this.status_element);
 this.screen.append(this.countdown_element);
 this.screen.append(this.controls_element);
 this.screen.append(this.information_element);
+this.screen.append(this.diff_table_element);
 this.screen.append(this.table_element);
 this.table_element.setFront();
 this.table_element.focus();

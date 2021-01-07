@@ -27,7 +27,7 @@ Date.prototype.toIsoArr = function(precision) {
         const color = {
             month:  (['half','quarter'].includes(precision) ? COLOR.WARNING : ( ['month','day','hour'].includes(precision) ? COLOR.SUCCESS : COLOR.INVALID )),
             day:    ['day','hour'].includes(precision) ? COLOR.SUCCESS : COLOR.INVALID,
-            hour:   (precision == "hour") ? COLOR.SUCCESS : COLOR.INVALID
+            hour:   (precision === "hour") ? COLOR.SUCCESS : COLOR.INVALID
         };
         col = [
                                 COLOR.SUCCESS(this.getFullYear()),
@@ -51,16 +51,16 @@ Date.prototype.toIsoArr = function(precision) {
 this.secondsHumanReadable = ((t, precision) => {
     var seconds = parseInt(t, 10); // Convert float to int
 	var days	= Math.floor(seconds / 86400);
-	if (precision == "days") { return days+" days" };
+	if (precision === "days") { return days+" days" };
 	var str = 	(days != 0 ? days+" days, " : "");
     seconds  	-= days*86400;
 	var hours   = Math.floor(seconds / 3600);
 	str 		+= (hours+" hours")
-	if (precision == "hours") { return str };
+	if (precision === "hours") { return str };
     seconds  	-= hours*3600;
 	var minutes = Math.floor(seconds / 60);
 	str 		+= (", "+pad(minutes, " ")+" minutes")
-	if (precision == "minutes") { return str };
+	if (precision === "minutes") { return str };
     seconds  	-= minutes*60;
     return str+", "+pad(seconds, " ")+" seconds"	//Let's not worry about padding the hours.. Doesn't change that much.
 });
