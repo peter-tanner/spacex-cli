@@ -3,6 +3,9 @@
 
 ### Install with `npm install -g npc-strider/spacex-cli`
 
+![Main view](./preview-images/main.png)
+
+*You may notice that  falcon heavy launch shows as falcon 9, but that appears to be due to the API.
 
 ```
 Usage:
@@ -31,3 +34,13 @@ So I decided to not just upgrade the bash script to use the new api, but also ad
 The cli isn't pretty like some others, but I think it's quite dense in relevant information.
 
 *I'm not including space.ico in my releases to prevent trademark infringement :/ sorry.
+
+
+## More screenshots
+---
+View raw response\
+![View raw JSON](./preview-images/raw-view.png)
+
+View differences in data (You'll be notified as well when the data changes)\
+You can also view the differences (which includes data not in the table) in JSON form.\
+![Diff table](./preview-images/diff-table.png)
