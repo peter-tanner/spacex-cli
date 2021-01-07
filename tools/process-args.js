@@ -48,8 +48,8 @@ if (this.arguments.help) {
     console.log(`
 Usage:
     spacex-cli
-    spacex-cli [-a <polling interval>] | [-h] | [-s <polling interval>] | [-d] | [-b]
-    spacex-cli [--api_refresh=<polling interval>] | [--help] | [--screen_refresh=<polling interval>] | [--dump] | [--blink]
+    spacex-cli [-a <polling interval>] | [-h] | [-s <polling interval>] | [-d] | [-b] | [-v] | [-p <appdir>] | [-n <time remaining>] | [-g <time remaining>]
+    spacex-cli [--api_refresh=<polling interval>] | [--help] | [--screen_refresh=<polling interval>] | [--dump] | [--blink] | [--archive] | [--path=<appdir>] | [--notify_time=<time remaining>] | [--highlight_time=<time remaining>]
 
 Options:
     -h, --help              Show this help information.
