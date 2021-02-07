@@ -79,8 +79,8 @@ this.diffTable = ((A,B) => {
         var row = [[''],[''],Array(B[i].length).fill('')];
         var mod = false;
         for ( var j = 0; j < B[i].length; j++ ) {
-            var a = A[i][j];
-            var b = B[i][j];
+            var a = A[i] ? (A[i][j] ? A[i][j] : "<NULL>") : "<NULL>";
+            var b = B[i] ? (B[i][j] ? B[i][j] : "<NULL>") : "<NULL>";
             if (a !== b) {
                 a = COLOR.DANGER(a);
                 b = COLOR.SUCCESS(b);

@@ -44,3 +44,10 @@ View raw response\
 View differences in data (You'll be notified as well when the data changes)\
 You can also view the differences (which includes data not in the table) in JSON form.\
 ![Diff table](./preview-images/diff-table.png)
+
+## Changelog
+---
+| Date | Version | Changes |
+| --- | --- | --- |
+| 2021-01-08 | 1.0.0 | Initial release. |
+| 2021-02-07 | 1.0.1 | Fix bug with diff where undefined cells would cause an error. |
