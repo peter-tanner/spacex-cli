@@ -3,9 +3,11 @@
 
 ### Install with `npm install -g npc-strider/spacex-cli`
 
+### ** I'm not including the proper `spacex.ico` in my releases to prevent trademark infringement :/ sorry. Add your own spacex logo in the npm directory: `npm\node_modules\spacex-cli` **
+
 ![Main view](./preview-images/main.png)
 
-*You may notice that  falcon heavy launch shows as falcon 9, but that appears to be due to the API.
+*You may notice that  falcon heavy launch shows as falcon 9, but that appears to be due to the API. Doesn't appear like this now.
 
 ```
 Usage:
@@ -33,9 +35,6 @@ So I decided to not just upgrade the bash script to use the new api, but also ad
 
 The cli isn't pretty like some others, but I think it's quite dense in relevant information.
 
-*I'm not including space.ico in my releases to prevent trademark infringement :/ sorry.
-
-
 ## More screenshots
 ---
 View raw response\
@@ -51,3 +50,4 @@ You can also view the differences (which includes data not in the table) in JSON
 | --- | --- | --- |
 | 2021-01-08 | 1.0.0 | Initial release. |
 | 2021-02-07 | 1.0.1 | Fix bug with diff where undefined cells would cause an error. |
+| 2021-02-16 | 1.0.2 | Added temp/placeholder icon to fix notifications. Remember to add your own icon (not including originals to prevent trademark infringement) |

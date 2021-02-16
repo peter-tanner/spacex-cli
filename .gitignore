@@ -2,7 +2,7 @@
 etc/
 node_modules/
 #trademark reasons.
-spacex.ico
+spacex-trademark.ico
 build
 npm-debug.log
 .env
