@@ -3,6 +3,7 @@ const clc = require('cli-color');
 const notifier = require('node-notifier');
 const Diff = require('diff');
 const path = require('path');
+const isWsl = require('is-wsl');
 
 const arguments = require('./tools/process-args').arguments;
 const cli_elem = require('./tools/cli-elements');   //Idk js package structure/conventions...
@@ -49,6 +50,11 @@ const ARCHIVE = arguments.archive;
 
 var notified_1h = [];
 var notifying_1h = [];
+
+var ICON_PATH = path.join(__dirname, 'spacex.ico');
+if (isWsl && ICON_PATH.startsWith("/mnt/",0)) {
+    ICON_PATH = ICON_PATH.substr(5).replace("/",":/");
+}
 
 function selectData(arr) {
 	const LUNCHPADS_RESP = arr[0];
@@ -293,7 +299,7 @@ async function main() {
             notifier.notify({
                 title:      STRING.H_WARNING,
                 message:    notifying_1h.join(' │ '),
-                icon:       path.join(__dirname, 'spacex.ico'),
+                icon:       ICON_PATH,
                 appID:      STRING.APPID
             });
             notifying_1h = [];
@@ -373,7 +379,7 @@ async function main() {
                     notifier.notify({
                         title:      STRING.NEW_DATA,
                         message:    'Press d to see table diff. Press j to see JSON diff.',
-                        icon:       path.join(__dirname, 'spacex.ico'),
+                        icon:       ICON_PATH,
                         appID:      STRING.APPID
                     });
                     net_tools.writeFile(path_prev_launches, JSON.stringify(curr_launches));

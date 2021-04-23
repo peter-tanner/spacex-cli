@@ -51,3 +51,4 @@ You can also view the differences (which includes data not in the table) in JSON
 | 2021-01-08 | 1.0.0 | Initial release. |
 | 2021-02-07 | 1.0.1 | Fix bug with diff where undefined cells would cause an error. |
 | 2021-02-16 | 1.0.2 | Added temp/placeholder icon to fix notifications. Remember to add your own icon (not including originals to prevent trademark infringement) |
+| 2021-04-23 | 1.0.3 | Fixed notifications on WSL due to unix-style paths not working as an argument on Windows with node-notifier |
